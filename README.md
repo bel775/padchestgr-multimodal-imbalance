@@ -5,6 +5,12 @@
 
 ---
 
+## Overview
+
+Chest X-ray classification is challenged by severe class imbalance, multi-label co-occurrence, and domain variability across scanners and patient populations. Radiology reports provide complementary semantic evidence that may help address these limitations, yet their role in strongly imbalanced multi-label settings remains underexplored. In this work, we investigate image-only, text-only, and multimodal learning on a curated subset of PadChest-GR, where each radiograph is paired with sentence-level clinical findings. We apply structured preprocessing to both modalities and benchmark four text backbones, three image backbones, and their multimodal combinations under a unified training configuration, including data augmentation and imbalance-mitigation strategies.
+
+---
+
 ## Installation
 
 > Add the installation steps here when the project is finished.
