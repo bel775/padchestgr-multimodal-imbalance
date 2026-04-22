@@ -3,8 +3,8 @@ import torch.nn as nn
 from transformers import BertTokenizer,AutoTokenizer
 import torch
 
-from imageModels import UnimodalModel_ResNet50, load_raddinoMaira1, _get_block_module, _get_final_norm, pool_tokens
-from textModels import BertTokenizer_embedding, BioBERT_Embedding, CXR_BERT_Embedding
+from models.imageModels import ResNet50_Embedding, load_raddinoMaira1, _get_block_module, _get_final_norm, pool_tokens
+from models.textModels import BertTokenizer_embedding, BioBERT_Embedding, CXR_BERT_Embedding
 
 
 ###################################################################################################
@@ -16,7 +16,7 @@ class multiModel(nn.Module):
 
         self.imageModel = imageModel
         if imageModel == 0:
-            self.resnet50 = UnimodalModel_ResNet50()
+            self.resnet50 = ResNet50_Embedding()
             self.feat_dim = self.resnet50.output_dim
         else:
             self.feat_dim = img_feat_dim

@@ -21,7 +21,7 @@ def save_loss_plot(train_losses, val_losses, save_path):
     plt.close()
 
 
-def train_model(model, optimizer,criterion, training_mode, train_loader, val_loader, pos_weight, save_path, classWeightType=False, num_epochs=300, early_Stopping = 60):
+def train_model(model, optimizer,criterion, training_mode, train_loader, val_loader, freezeText, save_path, num_epochs=300, early_Stopping = 60):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -58,14 +58,22 @@ def train_model(model, optimizer,criterion, training_mode, train_loader, val_loa
                 outputs = model(images)
 
             elif training_mode == 1:
-                sentences = batch['sentence']
+                if freezeText:
+                    sentences = batch['sentence'].to(device)
+                else:
+                    sentences = batch['sentence']
+
                 labels = batch['label'].to(device)
 
                 outputs = model(sentences)
 
             elif training_mode == 2:
+                if freezeText:
+                    sentences = batch['sentence'].to(device)
+                else:
+                    sentences = batch['sentence']
+
                 images = batch['image_feat'].to(device)
-                sentences = batch['sentence']
                 labels = batch['label'].to(device)
 
                 outputs = model(images, sentences)  
@@ -94,7 +102,7 @@ def train_model(model, optimizer,criterion, training_mode, train_loader, val_loa
 
 
         # ---- Validation ----
-        val_loss, f1 = evaluate_model(model, val_loader, criterion = criterion)
+        val_loss, f1 = evaluate_model(model, val_loader,training_mode,freezeText, criterion = criterion)
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)

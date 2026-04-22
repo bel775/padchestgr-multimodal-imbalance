@@ -73,7 +73,7 @@ class RadDINOFirst11Extractor(nn.Module):
             p.requires_grad = False
         self.m.eval()
 
-        print("RadDino Extract Features 1 Linear")
+        print("RadDino Extract Features")
 
     @torch.no_grad()
     def forward(self, x):

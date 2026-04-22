@@ -14,9 +14,9 @@ class CachedFeatureDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
+        y = torch.as_tensor(self.data[idx]['label'], dtype=torch.float32) 
         if self.training_mode == 0 or self.training_mode == 2:
             x = self.data[idx]['image_feat']                       
-            y = torch.as_tensor(self.data[idx]['label'], dtype=torch.float32) 
             if self.training_mode == 0:        
                 return {'image_feat': x, 'label': y}
             else:
@@ -60,14 +60,16 @@ class CustomDataset(Dataset):
 
         self.split = split
 
-        self.transform = self.augData if self.split == "train" else self.originalData
+        if training_mode == 0 or training_mode == 2:
+            self.transform = self.augData if self.split == "train" else self.originalData
 
     def __len__(self):
         return len(self.sentences)
     
     def set_split(self, split: str):
         self.split = split
-        self.transform = self.augData if split == "train" else self.originalData
+        if self.training_mode == 0 or self.training_mode == 2:
+            self.transform = self.augData if split == "train" else self.originalData
 
     def get_labels_only(self):
         return self.labels.numpy()

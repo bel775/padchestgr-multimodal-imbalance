@@ -19,8 +19,9 @@ def output_to_Tensor(outputs):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def extract_features_rad_dino(dataset, training_mode, image_encoder, fineTuning = True):
-    image_encoder.eval().to(device)
+def extract_features_rad_dino(dataset, training_mode, image_encoder, fineTuning, eval_bool):
+    if eval_bool:
+        image_encoder.eval().to(device)
 
     all_features = []
     feat_dim = None

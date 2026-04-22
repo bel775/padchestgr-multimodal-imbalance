@@ -1,29 +1,25 @@
 import os
-import os, json, shutil, random
-from dataset import get_data
-
-import torch
-import copy, time
+from data.data_loader import get_data
 from train import train_model
 from evaluation import evaluate_model
 import pandas as pd
 import argparse
 from utils import get_model, get_criterion, preProcessData
-dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 def main(wrs_mode, classWeighted, dataAug, oversampling, imagemodel, raddinoHead, textmodel, freezeImage,freezeText, label_count):
     print("Start the Main ...")
 
-    data = pd.read_csv(os.path.join(dir,"scripts/master_table.csv"))
+    data = pd.read_csv(os.path.join(dir,"padchestgr-multimodal-imbalance/master_table.csv"))
 
-    images_src = os.path.join(dir,'dataset/PadChest_GR')
-    RadDino_src = os.path.join(dir,'scripts/RadDino_PadChest/dinov2_src')
-    RadDinoWeights = os.path.join(dir,'models/backbone_compatible.safetensors')
+    images_src = os.path.join(dir,'padchestgr-multimodal-imbalance/images/PadChest_GR')
+    RadDino_src = os.path.join(dir,'dinov2_src')
+    RadDinoWeights = os.path.join(dir,'padchestgr-multimodal-imbalance/backbones/backbone_compatible.safetensors')
     #RadDinoWeights = os.path.join(dir,'models/radDinoMaria2.safetensors')
 
-    Head_RadDinoWeights = os.path.join(dir,'models/dino_head.safetensors')
+    Head_RadDinoWeights = os.path.join(dir,'padchestgr-multimodal-imbalance/backbones/dino_head.safetensors')
 
-    supects_terms_path = os.path.join(dir,"scripts/terminos_sospechosos_coincidencia_lexica.xlsx")
+    supects_terms_path = os.path.join(dir,"padchestgr-multimodal-imbalance/terminos_sospechosos_coincidencia_lexica.xlsx")
     #model = radDino_Head(768,Head_RadDinoWeights, 25).to('cuda')
     #print(model)
     #model = None
@@ -70,17 +66,17 @@ def main(wrs_mode, classWeighted, dataAug, oversampling, imagemodel, raddinoHead
                                                                                       DataAug = dataAug, oversampler = oversampling, 
                                                                                       freezeImage = freezeImage, freezeText = freezeText)
     
-    save_loss_path = os.path.join(dir,f'Graphs/PadChest/MultiModal/loss_curve{imagemodel_str}{ftImage_str}{textmodel_str}{ftText_str}{wrs_str}{cw_str}{dataAug_str}{os_str}.png')
+    save_loss_path = os.path.join(dir,f'padchestgr-multimodal-imbalance/graphs/loss_curve{imagemodel_str}{ftImage_str}{textmodel_str}{ftText_str}{wrs_str}{cw_str}{dataAug_str}{os_str}.png')
 
     model,optimizer = get_model(textmodel,imagemodel,freezeImage,freezeText,RadDino_src,
                                 RadDinoWeights,Head_RadDinoWeights,num_classes=label_count, 
                                 fusion_dim = feat_dim, raddinoHead = raddinoHead)
     criterion = get_criterion(classWeighted, pos_weight)
-    model = train_model(model,optimizer,criterion, training_mode, train_loader, val_loader, save_loss_path)
+    model = train_model(model,optimizer,criterion, training_mode, train_loader, val_loader,freezeText, save_loss_path)
 
-    #torch.save(model.state_dict(), os.path.join(dir,'models/RadDinoMAIRA1FT_5label.pth'))
+    #torch.save(model.state_dict(), os.path.join(dir,'save_models/RadDinoMAIRA1FT_5label.pth'))
 
-    evaluate_model(model, test_loader,eval_test = True)
+    evaluate_model(model, test_loader,training_mode,freezeText, eval_test = True)
 
 
 
@@ -88,10 +84,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run main training script with configurable options.")
 
     ## Balance Strategy
-    parser.add_argument("--wrs_mode", action="store_true", help="Enable Weighted Random Sampling mode (default: False)")
-    parser.add_argument("--classWeighted", action="store_true", help="Enable Class Weighted mode (default: False)")
+    parser.add_argument("--wrs", action="store_true", help="Enable Weighted Random Sampling mode (default: False)")
+    parser.add_argument("--cw", action="store_true", help="Enable Class Weighted mode (default: False)")
     parser.add_argument("--dataAug", action="store_true", help="Enable Data Augmentation mode (default: False)")
-    parser.add_argument("--oversampling", action="store_true", help="Enable OverSampling mode (default: False)")
+    parser.add_argument("--os", action="store_true", help="Enable OverSampling mode (default: False)")
 
     ## Model Configuration
     parser.add_argument("--imagemodel", type=int, choices=[0, 1, 2, 3], default=3,
@@ -107,7 +103,7 @@ if __name__ == "__main__":
                         help="Select Label counts: 25 label, 20 label, 15 label, 10 label, 5 label, (default: 25)")
     args = parser.parse_args()
 
-    main(args.wrs_mode, args.classWeighted,args.dataAug,args.oversampling, args.imagemodel, args.raddinohead,args.textmodel,args.freezeImage,args.freezeText, args.label_count)
+    main(args.wrs, args.cw,args.dataAug,args.os, args.imagemodel, args.raddinohead,args.textmodel,args.freezeImage,args.freezeText, args.label_count)
 
 
 

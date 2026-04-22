@@ -100,7 +100,7 @@ def stratified_split_multilabel(labels, n_splits=5, fold=0):
             return split1_idx, split2_idx
         
 def make_weighted_random_sampler(base_dataset, subset_indices):
-    print("weighted random sampler MEAN")
+    print("weighted random sampler")
     # labels: [N_subset, C] with {0,1}
     Y = base_dataset.get_labels_only()[subset_indices]
     Y = np.asarray(Y, dtype=np.float64)
@@ -219,7 +219,7 @@ def get_model(textmodel,imagemodel,freezeImage,freezeText,RadDino_src,RadDinoWei
         else:
             if freezeImage == False:
                 if raddinoHead:
-                    model = UniModal_radDino_LastBlock_PlusHead(fusion_dim,RadDino_src,RadDinoWeights,Head_RadDinoWeights,num_classes=num_classes).to(device)
+                    model = UniModal_radDino_LastBlock_PlusHead(768,RadDino_src,RadDinoWeights,Head_RadDinoWeights,num_classes=num_classes).to(device)
                     trainable_params = [
                         {"params": model.last_block.parameters(), "lr": imageBackboneRadDino_Lr},
                         {"params": model.final_norm.parameters(), "lr": imageBackboneRadDino_Lr},
@@ -228,7 +228,7 @@ def get_model(textmodel,imagemodel,freezeImage,freezeText,RadDino_src,RadDinoWei
                         #{"params": model.classifier.parameters(), "lr": 1e-3}
                     ]
                 else:
-                    model = model = UniModal_RadDINOLastBlockClassifier(RadDino_src,RadDinoWeights,num_classes,in_dim=fusion_dim,radDinoType=imagemodel).to(device)
+                    model = model = UniModal_RadDINOLastBlockClassifier(RadDino_src,RadDinoWeights,num_classes,in_dim= 768,radDinoType=imagemodel).to(device)
                     trainable_params = [
                         {"params": model.last_block.parameters(), "lr": imageBackboneRadDino_Lr}, #1e-3
                         {"params": model.final_norm.parameters(), "lr": imageBackboneRadDino_Lr},
@@ -236,14 +236,14 @@ def get_model(textmodel,imagemodel,freezeImage,freezeText,RadDino_src,RadDinoWei
                     ]
             else:
                 if raddinoHead:
-                    model = UniModal_radDino_PlusHead(fusion_dim, Head_RadDinoWeights,num_classes=num_classes).to(device)
+                    model = UniModal_radDino_PlusHead(768, Head_RadDinoWeights,num_classes=num_classes).to(device)
                     trainable_params = [
                         {"params": (p for p in model.rad_dino_head_gh.mlp.parameters() if p.requires_grad), "lr": imageBackboneRadDino_Lr},
                         {"params": (p for p in model.rad_dino_head_gh.last_layer.parameters() if p.requires_grad), "lr": head_Lr}
                         #{"params": model.classifier.parameters(), "lr": 1e-3}
                     ]
                 else:                 
-                    model = UniModal_RadDino(fusion_dim,num_classes=num_classes).to(device)
+                    model = UniModal_RadDino(768,num_classes=num_classes).to(device)
                     trainable_params = [
                         {"params": model.classifier.parameters(), "lr": head_Lr}
                     ]
@@ -251,7 +251,7 @@ def get_model(textmodel,imagemodel,freezeImage,freezeText,RadDino_src,RadDinoWei
         return model, optimizer
     else:
         if freezeImage == False:
-            model = MultiModal_RadDINOLastBlockClassifier(RadDino_src, RadDinoWeights, in_dim = fusion_dim, num_classes=num_classes, encoder_type = textmodel, weightsDiff = True).to(device)
+            model = MultiModal_RadDINOLastBlockClassifier(RadDino_src, RadDinoWeights, in_dim = 768, num_classes=num_classes, encoder_type = textmodel, weightsDiff = True).to(device)
             trainable_params = [
                 {"params": (p for p in model.last_block.parameters() if p.requires_grad), "lr": imageBackboneRadDino_Lr},
                 {"params": model.final_norm.parameters(), "lr": imageBackboneRadDino_Lr},
@@ -259,7 +259,7 @@ def get_model(textmodel,imagemodel,freezeImage,freezeText,RadDino_src,RadDinoWei
                 {"params": model.classifier.parameters(), "lr": head_Lr}
             ]
         else:
-            model = multiModel(fusion_dim,imageModel=imagemodel, num_classes=num_classes,textModel = textmodel).to(device)
+            model = multiModel(768,imageModel=imagemodel, num_classes=num_classes,textModel = textmodel).to(device)
             trainable_params = []
 
             if model.imageModel == 0:
