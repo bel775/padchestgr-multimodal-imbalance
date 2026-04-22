@@ -182,11 +182,3 @@ python main.py --imagemodel 1 --textmodel 3 --label_count 10
 }
 ```
 
----
-
-## Contact
-
-* Laihi Bahar Eddine — [bel7@alu.ua.es](mailto:bel7@alu.ua.es)
-* Antonio Javier Gallego — [jgallego@dlsi.ua.es](mailto:jgallego@dlsi.ua.es)
-* Antonio Pertusa — [pertusa@dlsi.ua.es](mailto:pertusa@dlsi.ua.es)
-

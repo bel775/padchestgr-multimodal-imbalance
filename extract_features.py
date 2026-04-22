@@ -19,21 +19,19 @@ def output_to_Tensor(outputs):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def extract_features_rad_dino(dataset, image_encoder, fineTuning = True):
+def extract_features_rad_dino(dataset, training_mode, image_encoder, fineTuning = True):
     image_encoder.eval().to(device)
 
     all_features = []
     feat_dim = None
 
     with torch.no_grad():
-        for i in range(len(dataset)):
-            image,sentence, label = dataset[i]
-            image = image.unsqueeze(0).to(device)
-            # Avoid double-rescale warnings: pass PIL/uint8
-            #image = ensure_pil_uint8(image)
-            
-            #patches = patch_image(image)
-            #images_stacked = torch.cat(patches, dim=0)
+        for batch in dataset:
+            image = batch['image_feat'].unsqueeze(0).to(device)
+            label = batch['label'].to(device)
+
+            if training_mode == 2:
+                sentence = batch['sentence']
 
             cls_token = image_encoder(image) 
             if fineTuning:
@@ -52,11 +50,17 @@ def extract_features_rad_dino(dataset, image_encoder, fineTuning = True):
                 feat_dim = feats.shape[0]   # 1536
                 print("Feature dim:", feat_dim)
 
-            all_features.append({
-                'image_feat': feats,        # CPU, (D,)
-                'sentence' : sentence,
-                'label': label              # CPU, (C,)
-            })
+            if training_mode == 0:
+                all_features.append({
+                    'image_feat': feats,        
+                    'label': label              
+                })
+            else:
+                all_features.append({
+                    'image_feat': feats,        # CPU, (D,)
+                    'sentence' : sentence,
+                    'label': label              # CPU, (C,)
+                })
 
     return all_features, feat_dim
 
@@ -67,8 +71,9 @@ def extract_text_features(dataset, text_encoder):
     feat_dim = None
 
     with torch.no_grad():
-        for i in range(len(dataset)):
-            sentence, label = dataset[i]
+        for batch in dataset:
+            label = batch['label'].to(device)
+            sentence = batch['sentence']
 
 
             cls_token = text_encoder(sentence) 
@@ -85,7 +90,7 @@ def extract_text_features(dataset, text_encoder):
                 print("Feature dim:", feat_dim)
 
             all_features.append({
-                'text_feat': feats,        # CPU, (D,)
+                'sentence': feats,        # CPU, (D,)
                 'label': label              # CPU, (C,)
             })
 
