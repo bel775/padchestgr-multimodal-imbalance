@@ -81,7 +81,7 @@ Available values:
 ### Extra model options
 
 * `--raddinohead`
-  Enable RadDino MAIRA-1 pretrained head (Work with just unimodal RadDINO and MAIRA-1).
+  Enable RadDino MAIRA-1 pretrained head (Work with just unimodal RadDINO MAIRA-1).
 
 * `--freezeImage`
   Freeze image backbone.
