@@ -1,6 +1,32 @@
 import torch
 from torchvision.transforms.functional import to_pil_image
 
+def ensure_pil_uint8(img):
+    # Accepts PIL or torch.Tensor
+    if isinstance(img, torch.Tensor):
+        # img: CxHxW
+        if img.dtype.is_floating_point():
+            img = (img.clamp(0, 1) * 255).to(torch.uint8)
+        elif img.dtype != torch.uint8:
+            img = img.to(torch.uint8)
+        img = to_pil_image(img)
+    return img
+
+def ensure_pil_uint8_v2(img):
+    # Accepts PIL or torch.Tensor
+    if isinstance(img, torch.Tensor):
+        # remove fake batch dim if present: 1xCxHxW -> CxHxW
+        if img.ndim == 4 and img.shape[0] == 1:
+            img = img.squeeze(0)
+
+        if img.dtype.is_floating_point:
+            img = (img.clamp(0, 1) * 255).to(torch.uint8)
+        elif img.dtype != torch.uint8:
+            img = img.to(torch.uint8)
+
+        img = to_pil_image(img)
+    return img
+
 def output_to_Tensor(outputs):
     # coerce to a Tensor
     if hasattr(outputs, "last_hidden_state"):           
@@ -19,8 +45,8 @@ def output_to_Tensor(outputs):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def extract_features_rad_dino(dataset, training_mode, image_encoder, fineTuning, eval_bool):
-    if eval_bool:
+def extract_features_rad_dino(dataset, training_mode, image_encoder, fineTuning, imagemodel):
+    if imagemodel != 2:
         image_encoder.eval().to(device)
 
     all_features = []
@@ -28,26 +54,39 @@ def extract_features_rad_dino(dataset, training_mode, image_encoder, fineTuning,
 
     with torch.no_grad():
         for batch in dataset:
-            image = batch['image_feat'].unsqueeze(0).to(device)
+            if not fineTuning and imagemodel == 2:
+                image = batch['image_feat']
+                image = ensure_pil_uint8_v2(image)
+            else:
+                if imagemodel == 2:
+                    image = batch['image_feat'].unsqueeze(0)
+                else:
+                    image = batch['image_feat'].unsqueeze(0).to(device)
             label = batch['label'].to(device)
 
             if training_mode == 2:
                 sentence = batch['sentence']
 
+
             cls_token = image_encoder(image) 
             if fineTuning:
                 cls_token = output_to_Tensor(cls_token)
             
-            if feat_dim is None:
-                print(cls_token.shape)
+            if imagemodel == 2 and not fineTuning:
+                cls_token = torch.tensor(cls_token, dtype=torch.float32)
+                cls_token = cls_token[:, 0, :]
+
+            #if feat_dim is None:
+            #    print(cls_token.shape)
             #patch_embeddings = patch_tokens.mean(dim=[2, 3])                 
 
-            #feats = torch.cat([cls_token, patch_embeddings], dim=1)          
+            #feats = torch.cat([cls_token, patch_embeddings], dim=1)           
             feats = cls_token.squeeze(0).cpu()    
             #feats = cls_token.cpu()                                  
             label = torch.as_tensor(label, dtype=torch.float32).cpu()        
 
             if feat_dim is None:
+                print("Output Shape:", feats.shape)
                 feat_dim = feats.shape[0]   # 1536
                 print("Feature dim:", feat_dim)
 

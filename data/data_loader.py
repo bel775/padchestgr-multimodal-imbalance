@@ -17,7 +17,6 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
     feature_extract_text = False
     feature_extract_image = False
     finetuning = False
-    eval_bool = True
     if training_mode == 0 or training_mode == 2:
         if imagemodel != 3:
             if freezeImage:
@@ -25,24 +24,26 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
                     feature_extract_image = True
                     image_encoder = torch.hub.load(RadDino_src, "dinov2_vitb14", source="local")
                     image_encoder = image_encoder
-                    print(image_encoder)
+                    #print(image_encoder)
                     backbone_state_dict = safetensors_to_state_dict(RadDinoWeights)
-
                     image_encoder.load_state_dict(backbone_state_dict, strict=True)
+                    print("Freeze RadDino MAIRA-1")
                 elif imagemodel == 2:
                     feature_extract_image = True
-                    eval_bool = False
                     image_encoder = pipeline(task="image-feature-extraction", model="microsoft/rad-dino-maira-2", pool=False, device=0)
+                    print("Freeze RadDino MAIRA-2")
                 else: raise ValueError("There is no ResNet50 freeze mode added.")
             else:
                 if imagemodel == 1:
                     finetuning = True
                     feature_extract_image = True
                     image_encoder = RadDINOFirst11Extractor(RadDino_src,RadDinoWeights, radDinoType = imagemodel)
+                    print("FineTuning Last Block RadDino MAIRA-1")
                 elif imagemodel == 2:
                     finetuning = True
                     feature_extract_image = True
                     image_encoder = RadDINOFirst11Extractor(RadDino_src,RadDinoWeights, radDinoType = imagemodel)
+                    print("FineTuning Last Block RadDino MAIRA-2")
                     #print("RedDino MAIRA-2 fine-tuning was not added. (we will work with RedDino MAIRA-2 Freeze)")
                     #image_encoder = pipeline(task="image-feature-extraction", model="microsoft/rad-dino-maira-2", pool=False)
                 else: print("FineTuning ResNet50")
@@ -88,7 +89,7 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
         print_splits(train_dataset, val_dataset, test_dataset, mlb.classes_)
 
         if feature_extract_image:
-            train_dataset_extractedFeatures, _ = extract_features_rad_dino(train_dataset,training_mode, image_encoder, finetuning, eval_bool)
+            train_dataset_extractedFeatures, _ = extract_features_rad_dino(train_dataset,training_mode, image_encoder, finetuning, imagemodel)
             train_dataset = CachedFeatureDataset(train_dataset_extractedFeatures, training_mode)
         
         elif feature_extract_text:
@@ -119,26 +120,26 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
                 #print("pos_weight:", pos_weight.tolist())
 
             if feature_extract_image:
-                train_dataset_extractedFeatures, _ = extract_features_rad_dino(train_dataset, training_mode, image_encoder, finetuning, eval_bool)
+                train_dataset_extractedFeatures, _ = extract_features_rad_dino(train_dataset, training_mode, image_encoder, finetuning, imagemodel)
                 train_dataset = CachedFeatureDataset(train_dataset_extractedFeatures, training_mode)
             
             elif feature_extract_text:
                 train_dataset_feats, _ = extract_text_features(train_dataset, TextFeaturesextract_model)
                 train_dataset = CachedFeatureDataset(train_dataset_feats, training_mode)
             
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=4,shuffle=True)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=2,shuffle=True)
         
         else:
 
             if feature_extract_image:
-                train_dataset_extractedFeatures, _ = extract_features_rad_dino(train_dataset,training_mode, image_encoder, finetuning, eval_bool)
+                train_dataset_extractedFeatures, _ = extract_features_rad_dino(train_dataset,training_mode, image_encoder, finetuning, imagemodel)
                 train_dataset = CachedFeatureDataset(train_dataset_extractedFeatures, training_mode)
             
             elif feature_extract_text:
                 train_dataset_feats, _ = extract_text_features(train_dataset, TextFeaturesextract_model)
                 train_dataset = CachedFeatureDataset(train_dataset_feats, training_mode)
                 
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=4,shuffle=True)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=2,shuffle=True)
             #pos_weight = weightedClass(dataset_train,train_idx)
 
 
@@ -148,8 +149,8 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
 
     
     if feature_extract_image:
-        val_dataset_extractedFeatures, _ = extract_features_rad_dino(val_dataset, training_mode, image_encoder, finetuning, eval_bool)
-        test_dataset_extractedFeatures, feat_dim = extract_features_rad_dino(test_dataset, training_mode, image_encoder, finetuning, eval_bool)
+        val_dataset_extractedFeatures, _ = extract_features_rad_dino(val_dataset, training_mode, image_encoder, finetuning, imagemodel)
+        test_dataset_extractedFeatures, feat_dim = extract_features_rad_dino(test_dataset, training_mode, image_encoder, finetuning, imagemodel)
         val_dataset = CachedFeatureDataset(val_dataset_extractedFeatures, training_mode)
         test_dataset = CachedFeatureDataset(test_dataset_extractedFeatures, training_mode)
 

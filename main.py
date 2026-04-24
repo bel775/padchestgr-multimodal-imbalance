@@ -99,7 +99,7 @@ if __name__ == "__main__":
     parser.add_argument("--freezeText", action="store_true", help="Enable Text Freeze Backbone mode (default: False)")
 
     ## Aux modes
-    parser.add_argument("--label_count", type=int, choices=[25, 20, 15, 10,5], default=25,
+    parser.add_argument("--label_count", type=int, choices=[25, 20, 15, 10, 5, 3, 2], default=25,
                         help="Select Label counts: 25 label, 20 label, 15 label, 10 label, 5 label, (default: 25)")
     args = parser.parse_args()
 

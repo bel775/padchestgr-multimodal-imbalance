@@ -26,13 +26,15 @@ Chest X-ray classification is challenged by severe class imbalance, multi-label 
 Main script:
 
 ```bash
-python main.py
+cd dinov2
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py
 ```
 
 General usage:
 
 ```bash
-python main.py [OPTIONS]
+cd dinov2
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py [OPTIONS]
 ```
 
 ---
@@ -41,16 +43,16 @@ python main.py [OPTIONS]
 
 ### Balance strategies
 
-* `--wrs_mode`
+* `--wrs`
   Enable Weighted Random Sampling.
 
-* `--classWeighted`
+* `--cw`
   Enable class-weighted loss.
 
 * `--dataAug`
   Enable data augmentation.
 
-* `--oversampling`
+* `--os`
   Enable oversampling.
 
 ### Image model
@@ -60,8 +62,8 @@ python main.py [OPTIONS]
 Available values:
 
 * `0` → ResNet50
-* `1` → MAIRA-1
-* `2` → MAIRA-2
+* `1` → RadDino MAIRA-1
+* `2` → RadDino MAIRA-2
 * `3` → WithoutImage
 
 ### Text model
@@ -72,20 +74,20 @@ Available values:
 
 * `0` → BertTokenizer
 * `1` → BioBERT
-* `2` → CXR-BERT
+* `2` → CXR-BERT General
 * `3` → CXR-BERT Specialized
 * `4` → WithoutText
 
 ### Extra model options
 
 * `--raddinohead`
-  Enable pretrained head.
+  Enable RadDino MAIRA-1 pretrained head (Work with just unimodal RadDINO and MAIRA-1).
 
 * `--freezeImage`
   Freeze image backbone.
 
 * `--freezeText`
-  Freeze text backbone.
+  Freeze text backbone. (Work with just unimodal)
 
 ### Label setup
 
@@ -99,49 +101,49 @@ Available values:
 ### Multimodal model
 
 ```bash
-python main.py --imagemodel 1 --textmodel 3
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3
 ```
 
 ### Text-only model
 
 ```bash
-python main.py --textmodel 3
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 3
 ```
 
 ### Image-only model
 
 ```bash
-python main.py --imagemodel 1
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1
 ```
 
 ### Multimodal with data augmentation, class-weighted loss and weighted random sampling
 
 ```bash
-python main.py --imagemodel 1 --textmodel 3 --dataAug --classWeighted --wrs_mode
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --dataAug --classWeighted --wrs_mode
 ```
 
 ### Multimodal with oversampling
 
 ```bash
-python main.py --imagemodel 1 --textmodel 3 --oversampling
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --oversampling
 ```
 
 ### Frozen image backbone
 
 ```bash
-python main.py --imagemodel 1 --textmodel 3 --freezeImage
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --freezeImage
 ```
 
 ### Frozen text backbone
 
 ```bash
-python main.py --textmodel 3 --freezeText
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 3 --freezeText
 ```
 
 ### Reduced label setting
 
 ```bash
-python main.py --imagemodel 1 --textmodel 3 --label_count 10
+PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --label_count 10
 ```
 
 ---
@@ -150,10 +152,10 @@ python main.py --imagemodel 1 --textmodel 3 --label_count 10
 
 | Argument          | Description                     |
 | ----------------- | ------------------------------- |
-| `--wrs_mode`      | Enable Weighted Random Sampling |
-| `--classWeighted` | Enable class-weighted loss      |
+| `--wrs`           | Enable Weighted Random Sampling |
+| `--cw`            | Enable class-weighted loss      |
 | `--dataAug`       | Enable data augmentation        |
-| `--oversampling`  | Enable oversampling             |
+| `--os`            | Enable oversampling             |
 | `--imagemodel`    | Select image model              |
 | `--raddinohead`   | Enable pretrained head          |
 | `--textmodel`     | Select text model               |
