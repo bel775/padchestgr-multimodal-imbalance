@@ -250,15 +250,7 @@ def get_model(textmodel,imagemodel,freezeImage,freezeText,RadDino_src,RadDinoWei
         optimizer = torch.optim.AdamW(trainable_params, weight_decay=weight_decay)
         return model, optimizer
     else:
-        if freezeImage == False:
-            model = MultiModal_RadDINOLastBlockClassifier(RadDino_src, RadDinoWeights, in_dim = 768, num_classes=num_classes, encoder_type = textmodel, weightsDiff = True).to(device)
-            trainable_params = [
-                {"params": (p for p in model.last_block.parameters() if p.requires_grad), "lr": imageBackboneRadDino_Lr},
-                {"params": model.final_norm.parameters(), "lr": imageBackboneRadDino_Lr},
-                {"params": (p for p in model.textencoder.parameters() if p.requires_grad), "lr": textBackbone_Lr},
-                {"params": model.classifier.parameters(), "lr": head_Lr}
-            ]
-        else:
+        if freezeImage or imagemodel == 0:
             model = multiModel(768,imageModel=imagemodel, num_classes=num_classes,textModel = textmodel).to(device)
             trainable_params = []
 
@@ -267,6 +259,14 @@ def get_model(textmodel,imagemodel,freezeImage,freezeText,RadDino_src,RadDinoWei
 
             trainable_params.append({"params": model.textencoder.parameters(), "lr": 2e-5})
             trainable_params.append({"params": model.classifier.parameters(), "lr": 1e-3})
+        else:
+            model = MultiModal_RadDINOLastBlockClassifier(RadDino_src, RadDinoWeights, in_dim = 768, num_classes=num_classes, encoder_type = textmodel, weightsDiff = True).to(device)
+            trainable_params = [
+                {"params": (p for p in model.last_block.parameters() if p.requires_grad), "lr": imageBackboneRadDino_Lr},
+                {"params": model.final_norm.parameters(), "lr": imageBackboneRadDino_Lr},
+                {"params": (p for p in model.textencoder.parameters() if p.requires_grad), "lr": textBackbone_Lr},
+                {"params": model.classifier.parameters(), "lr": head_Lr}
+            ]
         
         optimizer = torch.optim.AdamW(trainable_params, weight_decay=weight_decay)
         return model, optimizer

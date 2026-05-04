@@ -106,7 +106,7 @@ class MultiModal_RadDINOLastBlockClassifier(nn.Module):
             nn.Dropout(0.2),
             nn.Linear(self.fusion_dim, num_classes)
         )
-        print("1 Linear")
+        print("MultiModal RadDINO Finetuning Last Block + 1 Linear")
 
 
     def forward(self, image, text):
