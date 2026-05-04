@@ -13,12 +13,14 @@ Chest X-ray classification is challenged by severe class imbalance, multi-label 
 
 ## Installation
 
-> Add the installation steps here when the project is finished.
+This project uses the PADChest-GR multimodal imbalance code together with Meta AI's DINOv2 repository.
 
 ```bash
-# installation commands will be added here
-````
-
+mkdir padchestgrProject
+cd padchestgrProject
+git clone https://github.com/facebookresearch/dinov2.git
+git clone https://github.com/bel775/padchestgr-multimodal-imbalance.git
+```
 ---
 
 ## Run
