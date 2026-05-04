@@ -28,15 +28,15 @@ git clone https://github.com/bel775/padchestgr-multimodal-imbalance.git
 Main script:
 
 ```bash
-cd dinov2
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py
+cd padchestgrProject
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py
 ```
 
 General usage:
 
 ```bash
-cd dinov2
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py [OPTIONS]
+cd padchestgrProject
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py [OPTIONS]
 ```
 
 ---
@@ -103,49 +103,49 @@ Available values:
 ### Multimodal model
 
 ```bash
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3
 ```
 
 ### Text-only model
 
 ```bash
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 3
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 3
 ```
 
 ### Image-only model
 
 ```bash
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1
 ```
 
 ### Multimodal with data augmentation, class-weighted loss and weighted random sampling
 
 ```bash
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --dataAug --classWeighted --wrs_mode
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --dataAug --classWeighted --wrs_mode
 ```
 
 ### Multimodal with oversampling
 
 ```bash
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --oversampling
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --oversampling
 ```
 
 ### Frozen image backbone
 
 ```bash
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --freezeImage
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --freezeImage
 ```
 
 ### Frozen text backbone
 
 ```bash
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 3 --freezeText
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 3 --freezeText
 ```
 
 ### Reduced label setting
 
 ```bash
-PYTHONPATH=$PWD/dinov2_src:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --label_count 10
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --label_count 10
 ```
 
 ---
