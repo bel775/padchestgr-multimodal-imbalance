@@ -5,13 +5,17 @@ from transformers import pipeline
 from extract_features import extract_features_rad_dino, extract_text_features
 from models.imageModels import RadDINOFirst11Extractor
 from models.textModels import UniModal_Text_ExtractFeatures
-from utils import print_splits, stratified_split_multilabel, make_weighted_random_sampler, weightedClass, overSampling, print_20_test_image_ids
+from utils import print_splits, stratified_split_multilabel, make_weighted_random_sampler, weightedClass, overSampling, print_20_test_image_ids, seed_worker
 from data.dataset import CustomDataset, CachedFeatureDataset
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeights, IMAGE_SIZE = 448, batch_size = 32, 
-             wrs_mode = None, imagemodel = 0, textmodel = 0, DataAug = True, oversampler = False, freezeImage = False, freezeText = False):
+             wrs_mode = None, imagemodel = 0, textmodel = 0, DataAug = True, oversampler = False, freezeImage = False, freezeText = False,
+             test_fold = 0, crossValidation = False, seed = 42):
+
+    loader_generator = torch.Generator()
+    loader_generator.manual_seed(seed)
 
     
     feature_extract_text = False
@@ -62,12 +66,15 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
 
 
     all_labels = dataset_train.get_labels_only()
-    temp_idx, test_idx = stratified_split_multilabel(all_labels, n_splits=5, fold=0)
+    temp_idx, test_idx = stratified_split_multilabel(all_labels, n_splits=5, fold=test_fold, seed=seed)
     test_dataset = torch.utils.data.Subset(dataset_test, test_idx)
 
     temp_dataset_full = all_labels[temp_idx]
-    train_idx, val_idx = stratified_split_multilabel(temp_dataset_full, n_splits=4, fold=0)
-    train_dataset = torch.utils.data.Subset(dataset_train, [temp_idx[i] for i in train_idx])
+    validation_splits = 5 if crossValidation else 4
+    validation_fold = test_fold if crossValidation else 0
+    train_idx, val_idx = stratified_split_multilabel(temp_dataset_full, n_splits=validation_splits, fold=validation_fold, seed=seed)
+    abs_train_idx = [temp_idx[i] for i in train_idx]
+    train_dataset = torch.utils.data.Subset(dataset_train, abs_train_idx)
     val_dataset = torch.utils.data.Subset(dataset_val, [temp_idx[i] for i in val_idx])
 
     #Print the splits result
@@ -96,21 +103,22 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
             train_dataset_feats, _ = extract_text_features(train_dataset, TextFeaturesextract_model)
             train_dataset = CachedFeatureDataset(train_dataset_feats, training_mode)
             
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=0,shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=0, shuffle=True,
+                                  generator=loader_generator, worker_init_fn=seed_worker)
         pos_weight = None
 
         pos_weight = None
     else:
         if wrs_mode:
-            train_sampler = make_weighted_random_sampler(dataset_train, train_idx)
+            train_sampler = make_weighted_random_sampler(dataset_train, abs_train_idx, generator=loader_generator)
 
             with torch.no_grad():
-                Y_train = dataset_train.get_labels_only()[train_idx]
+                Y_train = dataset_train.get_labels_only()[abs_train_idx]
                 picked = list(train_sampler)               # indices 0..len(train_ds)-1
                 approx_counts = Y_train[picked].sum(axis=0)
                 print("Approx. train counts this epoch:", approx_counts.astype(int).tolist())
 
-                Y_train_raw = torch.as_tensor(dataset_train.get_labels_only()[train_idx], dtype=torch.float32)
+                Y_train_raw = torch.as_tensor(dataset_train.get_labels_only()[abs_train_idx], dtype=torch.float32)
                 P = Y_train_raw.sum(dim=0)                  # [C]
                 N_total = Y_train_raw.shape[0]
                 pos_weight = (N_total - P) / (P + 1e-6)     # (#negatives / #positives)
@@ -127,7 +135,8 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
                 train_dataset_feats, _ = extract_text_features(train_dataset, TextFeaturesextract_model)
                 train_dataset = CachedFeatureDataset(train_dataset_feats, training_mode)
             
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=2,shuffle=True)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=2, sampler=train_sampler,
+                                      generator=loader_generator, worker_init_fn=seed_worker)
         
         else:
 
@@ -139,11 +148,11 @@ def get_data(data_grouped,mlb, training_mode, images_src,RadDino_src,RadDinoWeig
                 train_dataset_feats, _ = extract_text_features(train_dataset, TextFeaturesextract_model)
                 train_dataset = CachedFeatureDataset(train_dataset_feats, training_mode)
                 
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=2,shuffle=True)
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=2, shuffle=True,
+                                      generator=loader_generator, worker_init_fn=seed_worker)
             #pos_weight = weightedClass(dataset_train,train_idx)
 
 
-            abs_train_idx = [temp_idx[i] for i in train_idx]
             all_labels = dataset_train.get_labels_only()         # torch [N, C]
             pos_weight = weightedClass(all_labels, abs_train_idx)
 

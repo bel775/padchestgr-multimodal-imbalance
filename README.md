@@ -70,7 +70,7 @@ Available values:
 
 ### Text model
 
-* `--textmodel {0,1,2,3,4}`
+* `--textmodel {0,1,2,3,4,5}`
 
 Available values:
 
@@ -79,6 +79,42 @@ Available values:
 * `2` → CXR-BERT General
 * `3` → CXR-BERT Specialized
 * `4` → WithoutText
+* `5` → TF-IDF + Multi-Label Linear SVM (text-only baseline)
+
+### Text leakage control
+
+* `--textCleaning {0,1,2}`
+
+Available values:
+
+* `0` → Before text cleaning
+* `1` → After removing explicit label names
+* `2` → After the final lexical matching filter (default)
+
+All three cleaning stages use the same eligible reports and the same deterministic
+train, validation and test partitions. Text-only test results are added to
+`graphs/text_leakage_comparison.csv`.
+
+### Cross-validation
+
+* `--crossValidation`
+
+Enable five-fold multilabel-stratified cross-validation. In each fold, 20% of
+the complete dataset is held out for testing. The remaining 80% is split into
+80% training and 20% validation data. Each fold uses a newly initialized model.
+
+The output includes F1 and AUPRC for every class in every fold, fold-level
+Macro-F1 and Macro-AUPRC, and the mean and standard deviation across the five
+folds. Detailed and summary CSV tables are saved in `graphs/`.
+
+### Save trained model
+
+* `--saveModel`
+
+Save the trained model in `save_models/`. The default is not to save a model.
+PyTorch models are saved as `.pth` state-dict checkpoints, while the fitted
+TF-IDF vectorizer and Linear SVM are saved together as a `.joblib` file. During
+cross-validation, one separate model is saved for every fold.
 
 ### Extra model options
 
@@ -148,6 +184,38 @@ PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr
 PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 1 --textmodel 3 --label_count 10
 ```
 
+### Text leakage comparison with the best text encoder
+
+```bash
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 3 --textmodel 3 --textCleaning 0
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 3 --textmodel 3 --textCleaning 1
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 3 --textmodel 3 --textCleaning 2
+```
+
+### TF-IDF + Linear SVM leakage baseline
+
+```bash
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --imagemodel 3 --textmodel 5 --textCleaning 2
+```
+
+### Five-fold cross-validation
+
+```bash
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 3 --textCleaning 2 --crossValidation
+```
+
+### TF-IDF + Linear SVM five-fold cross-validation
+
+```bash
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 5 --textCleaning 2 --crossValidation
+```
+
+### Train and save a model
+
+```bash
+PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr-multimodal-imbalance/main.py --textmodel 3 --textCleaning 2 --saveModel
+```
+
 ---
 
 ## Argument Summary
@@ -164,6 +232,9 @@ PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr
 | `--freezeImage`   | Freeze image backbone           |
 | `--freezeText`    | Freeze text backbone            |
 | `--label_count`   | Select number of labels         |
+| `--textCleaning`  | Select text preprocessing stage |
+| `--crossValidation` | Enable five-fold cross-validation |
+| `--saveModel`     | Save trained model (default: disabled) |
 
 ---
 
@@ -185,4 +256,3 @@ PYTHONPATH=$PWD/dinov2:$PWD/padchestgr-multimodal-imbalance python -u padchestgr
   year={2026}
 }
 ```
-

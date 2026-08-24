@@ -6,10 +6,34 @@ import torch.nn as nn
 import pandas as pd
 import multilabel_oversampling as mo
 from sklearn.preprocessing import MultiLabelBinarizer
+import os
+import random
 
 from clean_sentence import clean_sentence_label, clean_suspects_terms, remove_exclusive_terms
 
-def preProcessData(data, label_count = 25, xlsx_path = "",):
+def set_seed(seed=42):
+    """Seed all random-number generators used by this project."""
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    # Fail loudly if a future model introduces a non-deterministic operation.
+    torch.use_deterministic_algorithms(True)
+
+def seed_worker(worker_id):
+    """Give each DataLoader worker a deterministic Python/NumPy seed."""
+    worker_seed = torch.initial_seed() % (2 ** 32)
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+def preProcessData(data, label_count = 25, xlsx_path = "", textCleaning = 2):
 
     data_filtered = data[['ImageID', 'label', 'label_group','sentence_en']]
     data_filtered = data_filtered[data_filtered['label'] != "Normal"]
@@ -38,24 +62,41 @@ def preProcessData(data, label_count = 25, xlsx_path = "",):
         .reset_index()
     )
 
+    data_grouped['sentence_before_cleaning'] = data_grouped['sentence_en']
+
     print("Remove label terms")
-    data_grouped['sentence_en_clean'] = data_grouped.apply(clean_sentence_label, axis=1)
+    data_grouped['sentence_after_label_cleaning'] = data_grouped.apply(clean_sentence_label, axis=1)
 
     #eliminate the empty sentences after removing the label terms
-    data_grouped = data_grouped[data_grouped['sentence_en_clean'].str.strip() != '']
+    #The same eligible cohort is used for every cleaning stage so that all experiments
+    #have exactly the same labels and partitions.
+    data_grouped = data_grouped[data_grouped['sentence_after_label_cleaning'].str.strip() != '']
     data_grouped = data_grouped.reset_index(drop=True)
 
     if xlsx_path != "":
         print("Remove suspects terms")
         phrase_re = clean_suspects_terms(xlsx_path)
-        data_grouped['sentence_en_clean_terms'] = data_grouped['sentence_en_clean'].apply(lambda txt: remove_exclusive_terms(txt, regex=phrase_re))
+        data_grouped['sentence_after_lexical_filter'] = data_grouped['sentence_after_label_cleaning'].apply(lambda txt: remove_exclusive_terms(txt, regex=phrase_re))
 
         # Replace the empty sentences with the previous filter after aplying the removing of the suspects terms
-        data_grouped['final_sentence'] = np.where(
-            data_grouped['sentence_en_clean_terms'].str.strip() == '',
-            data_grouped['sentence_en_clean'],   
-            data_grouped['sentence_en_clean_terms']  
+        data_grouped['sentence_after_lexical_filter'] = np.where(
+            data_grouped['sentence_after_lexical_filter'].str.strip() == '',
+            data_grouped['sentence_after_label_cleaning'],
+            data_grouped['sentence_after_lexical_filter']
         )
+    else:
+        data_grouped['sentence_after_lexical_filter'] = data_grouped['sentence_after_label_cleaning']
+
+    text_cleaning_columns = {
+        0: 'sentence_before_cleaning',
+        1: 'sentence_after_label_cleaning',
+        2: 'sentence_after_lexical_filter'
+    }
+    if textCleaning not in text_cleaning_columns:
+        raise ValueError("Invalid text cleaning type. Select 0, 1 or 2.")
+
+    data_grouped['final_sentence'] = data_grouped[text_cleaning_columns[textCleaning]]
+    print("Text cleaning stage:", text_cleaning_columns[textCleaning])
     
     #multi_hot
     mlb = MultiLabelBinarizer()
@@ -89,17 +130,45 @@ def print_splits(train_dataset, val_dataset, test_dataset, classes):
         test_count = int(y_test[:, idx].sum())
         print(f"{class_name:<{class_col_width}} | {train_count:>7} | {val_count:>7} | {test_count:>7}")
 
-def stratified_split_multilabel(labels, n_splits=5, fold=0):
+def stratified_split_multilabel(labels, n_splits=5, fold=0, seed=42):
     # Extract all labels from the dataset
     #labels = dataset.get_labels_only()
 
-    mskf = MultilabelStratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    mskf = MultilabelStratifiedKFold(n_splits=n_splits, shuffle=True, random_state=seed)
 
     for i, (split1_idx, split2_idx) in enumerate(mskf.split(np.zeros(len(labels)), labels)):
         if i == fold:
             return split1_idx, split2_idx
+
+def get_multilabel_split_indices(labels, test_fold = 0, crossValidation = False, seed=42):
+    temp_idx, test_idx = stratified_split_multilabel(labels, n_splits=5, fold=test_fold, seed=seed)
+    validation_splits = 5 if crossValidation else 4
+    validation_fold = test_fold if crossValidation else 0
+    train_idx, val_idx = stratified_split_multilabel(
+        labels[temp_idx],
+        n_splits=validation_splits,
+        fold=validation_fold,
+        seed=seed
+    )
+
+    train_abs_idx = np.asarray([temp_idx[i] for i in train_idx])
+    val_abs_idx = np.asarray([temp_idx[i] for i in val_idx])
+
+    return train_abs_idx, val_abs_idx, np.asarray(test_idx)
+
+def print_sklearn_splits(labels, train_idx, val_idx, test_idx, classes):
+    class_col_width = max(len(c) for c in classes) + 2
+    header = f"{'Class':<{class_col_width}} | {'Train':>7} | {'Val':>7} | {'Test':>7}"
+    print("\n" + header)
+    print("-" * len(header))
+
+    for idx, class_name in enumerate(classes):
+        train_count = int(labels[train_idx, idx].sum())
+        val_count = int(labels[val_idx, idx].sum())
+        test_count = int(labels[test_idx, idx].sum())
+        print(f"{class_name:<{class_col_width}} | {train_count:>7} | {val_count:>7} | {test_count:>7}")
         
-def make_weighted_random_sampler(base_dataset, subset_indices):
+def make_weighted_random_sampler(base_dataset, subset_indices, generator=None):
     print("weighted random sampler")
     # labels: [N_subset, C] with {0,1}
     Y = base_dataset.get_labels_only()[subset_indices]
@@ -126,7 +195,8 @@ def make_weighted_random_sampler(base_dataset, subset_indices):
     return WeightedRandomSampler(
         weights=torch.as_tensor(sample_weights, dtype=torch.double),
         num_samples=len(sample_weights),   # one pass worth of draws
-        replacement=True
+        replacement=True,
+        generator=generator
     )
 
 def weightedClass(all_labels, abs_train_idx):
@@ -283,4 +353,3 @@ def get_criterion(classWeightType, pos_weight):
         criterion = nn.BCEWithLogitsLoss()
         print("Class Weights Off")
     return criterion
-

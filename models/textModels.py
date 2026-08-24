@@ -1,6 +1,9 @@
 import torch.nn as nn
 from transformers import BertTokenizer, BertModel, AutoModel,AutoTokenizer
 import torch
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import LinearSVC
 
 ###############################################################################################
 ## TEXT EMBEDDING
@@ -149,3 +152,32 @@ class Linear_Classifier(nn.Module):
     
     def forward(self, text_feats):
         return self.classifier(text_feats)
+
+###############################################################################################
+## TF-IDF BASELINE
+###############################################################################################
+class TFIDF_LinearSVM:
+    def __init__(self, seed=42):
+        self.vectorizer = TfidfVectorizer(
+            lowercase=True,
+            ngram_range=(1, 2),
+            min_df=2,
+            sublinear_tf=True
+        )
+        self.classifier = OneVsRestClassifier(
+            LinearSVC(C=1.0, random_state=seed)
+        )
+        print("TF-IDF + Multi-Label Linear SVM")
+
+    def fit(self, sentences, labels):
+        text_features = self.vectorizer.fit_transform(sentences)
+        self.classifier.fit(text_features, labels)
+        return self
+
+    def predict(self, sentences):
+        text_features = self.vectorizer.transform(sentences)
+        return self.classifier.predict(text_features)
+
+    def decision_function(self, sentences):
+        text_features = self.vectorizer.transform(sentences)
+        return self.classifier.decision_function(text_features)
